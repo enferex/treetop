@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <curses.h>
 #include <menu.h>
+#include <sys/stat.h>
 
 
 /* Output routines */
@@ -50,6 +51,7 @@ typedef struct _data_t
     struct _data_t *next;
     state_e state;
     ITEM *item;  /* Curses menu item for this file */
+    time_t last_mod;
 } data_t;
 
 
@@ -236,18 +238,26 @@ static void get_last_line(data_t *d)
 static void data_update(data_t *datas)
 {
     data_t *d;
+    struct stat stat;
 
     /* If the files have been updated, grab the last line from the file */
     for (d=datas; d; d=d->next)
-      if (d->state == UPDATED)
-      {
-          get_last_line(d);
-          if (d->item)
-          {
-              d->item->description.str = d->line;
-              d->item->description.length = strlen(d->line);
-          }
-      }
+    {
+        if (fstat(d->fd, &stat) == -1)
+          ER("Could not obtain file stats for: '%s'", d->base_name);
+
+        /* If the file has been modified since last check, update */
+        if (stat.st_mtime != d->last_mod)
+        {
+            d->last_mod = stat.st_mtime;
+            get_last_line(d);
+            if (d->item)
+            {
+                d->item->description.str = d->line;
+                d->item->description.length = strlen(d->line);
+            }
+        }
+    }
 }
 
 
