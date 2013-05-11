@@ -26,11 +26,11 @@
 
 
 /* If the file has the 'UPDATED' state */
-#define UPDATED_CHAR '*'
+#define UPDATED_CHAR "*"
 
 
 /* Delay milliseconds */
-#define DELAY_MS 1000
+#define DELAY_MS 5000
 
 
 typedef enum _state_e
@@ -92,7 +92,7 @@ static void screen_create_menu(screen_t *screen)
     }
 
     screen->menu = new_menu(screen->items);
-    set_menu_mark(screen->menu, "--> ");
+    set_menu_mark(screen->menu, "-->  ");
     set_menu_win(screen->menu, screen->content);
     post_menu(screen->menu);
 }
@@ -251,14 +251,9 @@ static void data_update(data_t *datas)
         /* If the file has been modified since last check, update */
         if (stat.st_mtime != d->last_mod)
         {
-            d->last_mod = stat.st_mtime;
             get_last_line(d);
-            if (d->item)
-            {
-                d->item->description.str = d->line;
-                d->item->description.length = strlen(d->line);
-                 
-            }
+            d->last_mod = stat.st_mtime;
+            d->state = UPDATED;
         }
     }
 }
@@ -267,9 +262,33 @@ static void data_update(data_t *datas)
 /* Update display */
 static void screen_update(screen_t *screen)
 {
+    data_t *d;
+
+    /* Check for updated data */
+    for (d=screen->datas; d; d=d->next)
+    {
+        if (d->state == UPDATED)
+        {
+            d->item->description.str = d->line;
+            d->item->description.length = strlen(d->line);
+        }
+    }
+
     /* Refresh menu */
     unpost_menu(screen->menu);
     post_menu(screen->menu);
+
+    /* Now draw a character signifying which file just changed */
+    for (d=screen->datas; d; d=d->next)
+    {
+        if (d->state == UPDATED)
+        {
+            mvwprintw(screen->content, item_index(d->item), 3, UPDATED_CHAR);
+            d->state = UNCHANGED;
+        }
+    }
+
+    /* Update display */
     wnoutrefresh(screen->master);
     wnoutrefresh(screen->content);
     doupdate();
