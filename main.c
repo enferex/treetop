@@ -24,15 +24,22 @@
 #define COMMENT_CHAR '#'
 
 
+typedef enum _state_e
+{
+    SAME,
+    UPDATED
+} state_e;
+
+
 /* File information */
 typedef struct _data_t
 {
-    long val;
     int fd;
     FILE *fp;
     const char *full_path;
     const char *base_name;
     struct _data_t *next;
+    state_e state;
 } data_t;
 
 
@@ -158,7 +165,7 @@ static data_t *data_init(const char *fname)
         head->fd = fileno(entry_fp);
         head->full_path = strdup(c);
         head->base_name = basename((char *)head->full_path);
-        head->val = ++i;
+        head->state = UPDATED; /* Force first update to process this */
         head->next = tmp;
         free(line);
         line = NULL;
@@ -186,6 +193,12 @@ static void data_destroy(data_t *datas)
 /* Update data */
 static void data_update(data_t *data)
 {
+    data_t *d;
+
+    /* If the files have been updated, grab the last line from the file */
+    for (d=datas; d; d=d->next)
+    {
+    }
 }
 
 
