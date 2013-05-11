@@ -112,40 +112,56 @@ static data_t *data_init(const char *fname)
     int i;
     FILE *fp, *entry_fp;
     data_t *head, *tmp;
-    char *c, line[1024] = {0};
+    char *c, *line;
+    size_t sz;
+    ssize_t ret;
+#define CONTINUE {free(line); line=NULL; continue;}
 
     if (!(fp = fopen(fname, "r")))
       ER("Could not open config file '%s'", fname);
 
     /* For each line in config */
     head = NULL;
-    while ((c=fgets(line, sizeof(line)-1, fp)))
+    line = NULL;
+    while ((ret = getline(&line, &sz, fp)) != -1)
     {
         /* Skip whitespace */
+        c = line;
         while (*c && isspace(*c))
           ++c;
 
         if (*c == COMMENT_CHAR)
-          break;
+          CONTINUE;
 
+        /* Trim line */
         if (strchr(c, COMMENT_CHAR))
           *(strchr(c, COMMENT_CHAR)) = '\0';
+        if (strchr(c, '\n'))
+          *(strchr(c, '\n')) = '\0';
+        if (strchr(c, ' '))
+          *(strchr(c, ' ')) = '\0';
+
+        if (strlen(c) == 0)
+          CONTINUE;
 
         if (!(entry_fp = fopen(c, "r")))
         {
             WR("Could not open file: '%s'", c);
-            continue;
+            CONTINUE;;
         }
-       
+
         /* Add to list */ 
+        DBG("Monitoring file: '%s'...", c);
         tmp = head;
         head = calloc(1, sizeof(data_t));
         head->fp = entry_fp;
         head->fd = fileno(entry_fp);
         head->full_path = strdup(c);
-        head->base_name = basename(c);
+        head->base_name = basename((char *)head->full_path);
         head->val = ++i;
         head->next = tmp;
+        free(line);
+        line = NULL;
     }
 
     return head;
