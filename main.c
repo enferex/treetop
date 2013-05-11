@@ -4,7 +4,6 @@
 #include <ctype.h>
 #include <libgen.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <curses.h>
 #include <menu.h>
 
@@ -27,6 +26,10 @@
 
 /* If the file has the 'UPDATED' state */
 #define UPDATED_CHAR '*'
+
+
+/* Delay milliseconds */
+#define DELAY_MS 1000
 
 
 typedef enum _state_e
@@ -100,6 +103,7 @@ static screen_t *screen_create(data_t *datas)
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
+    timeout(DELAY_MS);
 
     screen = calloc(1, sizeof(screen_t));
     screen->master = newwin(LINES, COLS, 0, 0);
@@ -108,7 +112,6 @@ static screen_t *screen_create(data_t *datas)
 
     box(screen->master, 0, 0);
     scrollok(screen->content, TRUE);
-    wrefresh(screen->master);
     screen_create_menu(screen);
     return screen;
 }
@@ -254,33 +257,32 @@ static void screen_update(screen_t *screen)
     /* Refresh menu */
     unpost_menu(screen->menu);
     post_menu(screen->menu);
-    wrefresh(screen->content);
+    wnoutrefresh(screen->master);
+    wnoutrefresh(screen->content);
+    doupdate();
 }
 
 
-static void *update_thread(void *scr)
+static void process(screen_t *screen)
 {
-    screen_t *screen = (screen_t *)scr;
+    int c;
 
-    for ( ;; )
+    while ((c = getch()) != 'Q' && c != 'q')
     {
+        switch (c)
+        {
+            case KEY_UP:
+                menu_driver(screen->menu, REQ_UP_ITEM);
+                break;
+            case KEY_DOWN:
+                menu_driver(screen->menu, REQ_DOWN_ITEM);
+                break;
+            default:
+                break;
+        }
         data_update(screen->datas);
         screen_update(screen);
-        sleep(1);
     }
-
-    return NULL;
-}
-
-
-static void *control_thread(void *scr)
-{
-    //screen_t *screen = (screen_t *)scr;
-
-    for ( ;; )
-      sleep(1);
-
-    return NULL;
 }
 
 
@@ -289,7 +291,6 @@ int main(int argc, char **argv)
     screen_t *screen;
     data_t *datas;
     const char *fname;
-    pthread_t update, control;
 
     /* Args */
     if (argc != 2)
@@ -303,17 +304,8 @@ int main(int argc, char **argv)
     /* Initialize display */
     screen = screen_create(datas);
 
-    /* Thread for updates */
-    if (pthread_create(&update, NULL, &update_thread, (void *)screen))
-      ER("Could not start update thread");
-
-    /* Thread for user input */
-    if (pthread_create(&control, NULL, &control_thread, (void *)screen))
-      ER("Could not start update thread");
-
-    /* Wait */
-    pthread_join(update, NULL);
-    pthread_join(control, NULL);
+    /* Do the work */
+    process(screen);
 
     /* Cleanup */
     data_destroy(datas);
