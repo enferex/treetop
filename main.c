@@ -92,6 +92,7 @@ static void screen_create_menu(screen_t *screen)
     }
 
     screen->menu = new_menu(screen->items);
+    set_menu_mark(screen->menu, "--> ");
     set_menu_win(screen->menu, screen->content);
     post_menu(screen->menu);
 }
@@ -256,6 +257,7 @@ static void data_update(data_t *datas)
             {
                 d->item->description.str = d->line;
                 d->item->description.length = strlen(d->line);
+                 
             }
         }
     }
@@ -287,6 +289,8 @@ static void process(screen_t *screen)
                 break;
             case KEY_DOWN:
                 menu_driver(screen->menu, REQ_DOWN_ITEM);
+                break;
+            case KEY_ENTER:
                 break;
             default:
                 break;
