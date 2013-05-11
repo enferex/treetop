@@ -41,17 +41,17 @@ typedef struct _data_t
     char line[128];
     struct _data_t *next;
     state_e state;
+    ITEM *item;  /* Curses menu item for this file */
 } data_t;
 
 
 /* Screen (ncurses state and content) */
 typedef struct _screen_t
 {
-    WINDOW *master;
-    WINDOW *content;
+    WINDOW *master;  /* Nothing here it just needs a border to look pretty */
+    WINDOW *content; /* Menu goes here                                     */
     MENU *menu;
     ITEM **items;
-    data_t *datas;
 } screen_t;
 
 
@@ -75,13 +75,14 @@ static void screen_create_menu(screen_t *screen, data_t *data)
     /* Allocate and create menu items (one per data item */
     screen->items = (ITEM **)calloc(i+1, sizeof(ITEM *));
     for (i=0, d=data; d; d=d->next, ++i)
-      screen->items[i] = new_item(d->base_name, d->line);
-    set_item_userptr(screen->items[0], NULL);
+    {
+        screen->items[i] = new_item(d->base_name, "Updating...");
+        d->item = screen->items[i];
+    }
 
     screen->menu = new_menu(screen->items);
     set_menu_win(screen->menu, screen->content);
     post_menu(screen->menu);
-    wrefresh(screen->content);
 }
 
 
@@ -225,16 +226,24 @@ static void data_update(data_t *datas)
 
     /* If the files have been updated, grab the last line from the file */
     for (d=datas; d; d=d->next)
-    {
-        if (d->state == UPDATED)
+      if (d->state == UPDATED)
+      {
           get_last_line(d);
-    }
+          if (d->item)
+          {
+              d->item->description.str = d->line;
+              d->item->description.length = strlen(d->line);
+          }
+      }
 }
 
 
 /* Update display */
 static void screen_update(screen_t *screen)
 {
+    /* Refresh menu */
+    unpost_menu(screen->menu);
+    post_menu(screen->menu);
     wrefresh(screen->content);
 }
 
