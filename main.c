@@ -213,6 +213,9 @@ static void get_last_line(data_t *d)
     while (idx > 0 && (line[idx] != '\n' && line[idx] != '\r'))
       --idx;
 
+    if (line[idx] == '\n' && idx+1 < n_bytes)
+      ++idx;
+
     /* Copy starting from the last line */
     if (idx >= 0)
       strncpy(d->line, line+idx, sizeof(d->line) - 1);
