@@ -113,6 +113,7 @@ static screen_t *screen_create(data_t *datas)
     screen->datas = datas;
 
     box(screen->master, 0, 0);
+    mvwprintw(screen->master, 0, COLS/2 - 6, "}-= PTOP =-{");
     scrollok(screen->content, TRUE);
     screen_create_menu(screen);
     return screen;
