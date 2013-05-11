@@ -36,6 +36,17 @@ typedef struct _data_t
 } data_t;
 
 
+/* Screen (ncurses state and content) */
+typedef struct _screen_t
+{
+    WINDOW *master;
+    WINDOW *content;
+    MENU *menu;
+    ITEM **items;
+    data_t *datas;
+} screen_t;
+
+
 static void usage(const char *execname)
 {
     PR("Usage: %s <config>\n", execname);
@@ -43,26 +54,55 @@ static void usage(const char *execname)
 }
 
 
-/* Initialize curses */
-static WINDOW *screen_init(void)
+/* Update display */
+static void screen_create_menu(screen_t *screen, data_t *data)
 {
-    WINDOW *win;
+    int i;
+    data_t *d;
+
+    /* Count number of data items */
+    for (d=data; d; d=d->next)
+      ++i;
+
+    /* Allocate and create menu items (one per data item */
+    screen->items = (ITEM **)calloc(i+1, sizeof(ITEM *));
+    for (i=0, d=data; d; d=d->next, ++i)
+      screen->items[i] = new_item(d->base_name, "POOP");
+    set_item_userptr(screen->items[0], NULL);
+
+    screen->menu = new_menu(screen->items);
+    set_menu_win(screen->menu, screen->content);
+    post_menu(screen->menu);
+    wrefresh(screen->content);
+}
+
+
+/* Initialize curses */
+static screen_t *screen_create(data_t *datas)
+{
+    screen_t *screen;
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
 
-    win = newwin(LINES, COLS, 0, 0);
-    box(win, 0, 0);
-    scrollok(win, TRUE);
-    return win;
+    screen = calloc(1, sizeof(screen_t));
+    screen->master = newwin(LINES, COLS, 0, 0);
+    screen->content = newwin(LINES-4, COLS-4, 2, 2);
+
+    box(screen->master, 0, 0);
+    scrollok(screen->content, TRUE);
+    wrefresh(screen->master);
+    screen_create_menu(screen, datas);
+    return screen;
 }
 
 
 /* Cleanup from curses */
-static void screen_deinit(void)
+static void screen_destroy(screen_t *screen)
 {
     endwin();
+    free(screen);
 }
 
 
@@ -134,29 +174,14 @@ static void data_update(data_t *data)
 
 
 /* Update display */
-static void screen_update(WINDOW *win, data_t *data)
+static void screen_update(screen)
 {
-    int i;
-    data_t *d;
-    MENU *menu;
-    ITEM **items;
-
-    for (d=data; d; d=d->next)
-      ++i;
-    items = (ITEM **)calloc(i, sizeof(ITEM *));
-    for (i=0, d=data; d; d=d->next, ++i)
-      items[i] = new_item(d->base_name, "POOP");
-    set_item_userptr(items[0], NULL);
-
-    menu = new_menu(items);
-    post_menu(menu);
-    refresh();
 }
 
 
 int main(int argc, char **argv)
 {
-    WINDOW *win;
+    screen_t *screen;
     data_t *datas;
     const char *fname;
 
@@ -164,25 +189,25 @@ int main(int argc, char **argv)
     if (argc != 2)
       usage(argv[0]);
     fname = argv[1];
-    printf("Using config: %s\n", fname);
+    DBG("Using config: %s\n", fname);
 
     /* Load data */
     datas = data_init(fname);
 
     /* Initialize display */
-    win = screen_init();
+    screen = screen_create(datas);
 
     /* Process */
     for ( ;; )
     {
         data_update(datas);
-        screen_update(win, datas);
+        screen_update(screen);
         sleep(1);
     }
 
     /* Cleanup */
     data_destroy(datas);
-    screen_deinit();
+    screen_destroy(screen);
 
     return 0;
 }
