@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <libgen.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <curses.h>
 #include <menu.h>
 
@@ -22,6 +23,10 @@
 
 /* Comment character for config file (anything after this char is ignored) */
 #define COMMENT_CHAR '#'
+
+
+/* If the file has the 'UPDATED' state */
+#define UPDATED_CHAR '*'
 
 
 typedef enum _state_e
@@ -52,6 +57,7 @@ typedef struct _screen_t
     WINDOW *content; /* Menu goes here                                     */
     MENU *menu;
     ITEM **items;
+    data_t *datas;
 } screen_t;
 
 
@@ -63,18 +69,18 @@ static void usage(const char *execname)
 
 
 /* Update display */
-static void screen_create_menu(screen_t *screen, data_t *data)
+static void screen_create_menu(screen_t *screen)
 {
     int i;
     data_t *d;
 
     /* Count number of data items */
-    for (d=data; d; d=d->next)
+    for (d=screen->datas; d; d=d->next)
       ++i;
 
     /* Allocate and create menu items (one per data item */
     screen->items = (ITEM **)calloc(i+1, sizeof(ITEM *));
-    for (i=0, d=data; d; d=d->next, ++i)
+    for (i=0, d=screen->datas; d; d=d->next, ++i)
     {
         screen->items[i] = new_item(d->base_name, "Updating...");
         d->item = screen->items[i];
@@ -98,11 +104,12 @@ static screen_t *screen_create(data_t *datas)
     screen = calloc(1, sizeof(screen_t));
     screen->master = newwin(LINES, COLS, 0, 0);
     screen->content = newwin(LINES-4, COLS-4, 2, 2);
+    screen->datas = datas;
 
     box(screen->master, 0, 0);
     scrollok(screen->content, TRUE);
     wrefresh(screen->master);
-    screen_create_menu(screen, datas);
+    screen_create_menu(screen);
     return screen;
 }
 
@@ -165,7 +172,7 @@ static data_t *data_init(const char *fname)
         head->fp = entry_fp;
         head->fd = fileno(entry_fp);
         head->full_path = strdup(c);
-        head->base_name = basename((char *)head->full_path);
+        head->base_name = strdup(basename((char *)head->full_path));
         head->state = UPDATED; /* Force first update to process this */
         head->next = tmp;
         free(line);
@@ -251,11 +258,38 @@ static void screen_update(screen_t *screen)
 }
 
 
+static void *update_thread(void *scr)
+{
+    screen_t *screen = (screen_t *)scr;
+
+    for ( ;; )
+    {
+        data_update(screen->datas);
+        screen_update(screen);
+        sleep(1);
+    }
+
+    return NULL;
+}
+
+
+static void *control_thread(void *scr)
+{
+    //screen_t *screen = (screen_t *)scr;
+
+    for ( ;; )
+      sleep(1);
+
+    return NULL;
+}
+
+
 int main(int argc, char **argv)
 {
     screen_t *screen;
     data_t *datas;
     const char *fname;
+    pthread_t update, control;
 
     /* Args */
     if (argc != 2)
@@ -269,13 +303,17 @@ int main(int argc, char **argv)
     /* Initialize display */
     screen = screen_create(datas);
 
-    /* Process */
-    for ( ;; )
-    {
-        data_update(datas);
-        screen_update(screen);
-        sleep(1);
-    }
+    /* Thread for updates */
+    if (pthread_create(&update, NULL, &update_thread, (void *)screen))
+      ER("Could not start update thread");
+
+    /* Thread for user input */
+    if (pthread_create(&control, NULL, &control_thread, (void *)screen))
+      ER("Could not start update thread");
+
+    /* Wait */
+    pthread_join(update, NULL);
+    pthread_join(control, NULL);
 
     /* Cleanup */
     data_destroy(datas);
