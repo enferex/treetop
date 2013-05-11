@@ -26,7 +26,7 @@
 
 typedef enum _state_e
 {
-    SAME,
+    UNCHANGED,
     UPDATED
 } state_e;
 
@@ -38,6 +38,7 @@ typedef struct _data_t
     FILE *fp;
     const char *full_path;
     const char *base_name;
+    char line[128];
     struct _data_t *next;
     state_e state;
 } data_t;
@@ -74,7 +75,7 @@ static void screen_create_menu(screen_t *screen, data_t *data)
     /* Allocate and create menu items (one per data item */
     screen->items = (ITEM **)calloc(i+1, sizeof(ITEM *));
     for (i=0, d=data; d; d=d->next, ++i)
-      screen->items[i] = new_item(d->base_name, "POOP");
+      screen->items[i] = new_item(d->base_name, d->line);
     set_item_userptr(screen->items[0], NULL);
 
     screen->menu = new_menu(screen->items);
@@ -116,7 +117,6 @@ static void screen_destroy(screen_t *screen)
 /* Create our file information */
 static data_t *data_init(const char *fname)
 {
-    int i;
     FILE *fp, *entry_fp;
     data_t *head, *tmp;
     char *c, *line;
@@ -190,21 +190,52 @@ static void data_destroy(data_t *datas)
 }
 
 
+/* Set the last line for this file */
+static void get_last_line(data_t *d)
+{
+    ssize_t idx, n_bytes;
+    char line[1024] = {0};
+
+    /* Get file size */
+
+    /* Read in last 1024 bytes */
+    if (fseek(d->fp, -sizeof(line), SEEK_END) == -1)
+      fseek(d->fp, 0, SEEK_SET);
+    n_bytes = fread(line, 1, sizeof(line)-1, d->fp);
+    idx = n_bytes - 1;
+
+    /* If file ends with newline */
+    while (idx > 0 && (line[idx] == '\n' || line[idx] == '\r'))
+      --idx;
+
+    /* Now find the next newline */
+    while (idx > 0 && (line[idx] != '\n' && line[idx] != '\r'))
+      --idx;
+
+    /* Copy starting from the last line */
+    if (idx >= 0)
+      strncpy(d->line, line+idx, sizeof(d->line) - 1);
+}
+
+
 /* Update data */
-static void data_update(data_t *data)
+static void data_update(data_t *datas)
 {
     data_t *d;
 
     /* If the files have been updated, grab the last line from the file */
     for (d=datas; d; d=d->next)
     {
+        if (d->state == UPDATED)
+          get_last_line(d);
     }
 }
 
 
 /* Update display */
-static void screen_update(screen)
+static void screen_update(screen_t *screen)
 {
+    wrefresh(screen->content);
 }
 
 
