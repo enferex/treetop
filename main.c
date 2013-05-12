@@ -34,6 +34,11 @@
 #define DELAY_MS 5000
 
 
+/* Max */
+#define MAX(_a, _b) (((_a)>(_b)) ? (_a) : (_b))
+
+
+/* File state */
 typedef enum _state_e
 {
     UNCHANGED,
@@ -128,8 +133,6 @@ static screen_t *screen_create(data_t *datas)
     screen->master_panel = new_panel(screen->master);
     screen->details_panel = new_panel(screen->details);
     screen->content_panel = new_panel(screen->content);
-
-    scrollok(screen->content, TRUE);
     screen_create_menu(screen);
     return screen;
 }
@@ -274,8 +277,48 @@ static void data_update(data_t *datas)
 /* Update the details screen to display info about the selected item */
 static void update_details(screen_t *screen, const data_t *selected)
 {
+    int maxx, maxy, x, y, d_idx, b_idx;
+    char buf[1024]={0}, disp[1024]={0};
+
+    wclear(screen->details);
+
+    /* Read in buffer */
+    if (fseek(selected->fp, -sizeof(buf), SEEK_END) == -1)
+      fseek(selected->fp, 0, SEEK_SET);
+    fread(buf, sizeof(buf), 1, selected->fp);
+    buf[sizeof(buf)-1] = '\0';
+    
+    /* Draw last n bytes of file: (figure out how much room we have) */
+    getmaxyx(screen->details, maxy, maxx);
+    maxy -= 2; /* Padding between file data and filename */
+    --maxx;
+
+    while ((maxx * maxy) > sizeof(buf))
+      --maxy;
+
+    /* Wrap */
+    b_idx = d_idx = 0;
+    for (y=0; y<maxy; ++y)
+    {
+        disp[d_idx++] = ' ';
+        for (x=0; x<maxx-2; ++x)
+        {
+            if (buf[b_idx]=='\n' || buf[b_idx] == '\r')
+            {
+                ++b_idx;
+                break;
+            }
+            disp[d_idx++] = buf[b_idx++];
+        }
+        disp[d_idx++] = '\n';
+    }
+
+    disp[d_idx] = '\0';
+    mvwprintw(screen->details, 2, 0, disp);
+    
+    /* Display file name and draw border */
+    mvwprintw(screen->details, 1, 1, "%s:\n", selected->base_name);
     box(screen->details, 0, 0);
-    mvwprintw(screen->details, 1, 1, "%s\n", selected->base_name);
 }
 
 
