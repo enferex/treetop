@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <curses.h>
 #include <menu.h>
+#include <panel.h>
 #include <sys/stat.h>
 
 
@@ -60,6 +61,10 @@ typedef struct _screen_t
 {
     WINDOW *master;  /* Nothing here it just needs a border to look pretty */
     WINDOW *content; /* Menu goes here                                     */
+    WINDOW *details; /* Display details about selected item                */
+    PANEL  *master_panel;
+    PANEL  *content_panel;
+    PANEL  *details_panel;
     MENU *menu;
     ITEM **items;
     data_t *datas;
@@ -88,6 +93,7 @@ static void screen_create_menu(screen_t *screen)
     for (i=0, d=screen->datas; d; d=d->next, ++i)
     {
         screen->items[i] = new_item(d->base_name, "Updating...");
+        set_item_userptr(screen->items[i], (void *)d);
         d->item = screen->items[i];
     }
 
@@ -109,12 +115,20 @@ static screen_t *screen_create(data_t *datas)
     timeout(DELAY_MS);
 
     screen = calloc(1, sizeof(screen_t));
-    screen->master = newwin(LINES, COLS, 0, 0);
-    screen->content = newwin(LINES-4, COLS-4, 2, 2);
     screen->datas = datas;
 
+    screen->master = newwin(LINES, COLS, 0, 0);
+    screen->content = newwin(LINES-4, COLS-4, 2, 2);
+    screen->details = newwin(LINES-6, COLS-6, 2, 2);
+
+    /* Decorate the master window */
     box(screen->master, 0, 0);
     mvwprintw(screen->master, 0, COLS/2 - 6, "}-= PTOP =-{");
+
+    screen->master_panel = new_panel(screen->master);
+    screen->details_panel = new_panel(screen->details);
+    screen->content_panel = new_panel(screen->content);
+
     scrollok(screen->content, TRUE);
     screen_create_menu(screen);
     return screen;
@@ -211,8 +225,6 @@ static void get_last_line(data_t *d)
     ssize_t idx, n_bytes;
     char line[1024] = {0};
 
-    /* Get file size */
-
     /* Read in last 1024 bytes */
     if (fseek(d->fp, -sizeof(line), SEEK_END) == -1)
       fseek(d->fp, 0, SEEK_SET);
@@ -259,8 +271,18 @@ static void data_update(data_t *datas)
 }
 
 
-/* Update display */
-static void screen_update(screen_t *screen)
+/* Update the details screen to display info about the selected item */
+static void update_details(screen_t *screen, const data_t *selected)
+{
+    box(screen->details, 0, 0);
+    mvwprintw(screen->details, 1, 1, "%s\n", selected->base_name);
+}
+
+
+/* Update display
+ * 'show_details' is the selected item, if no item is slected this val is NULL
+ */
+static void screen_update(screen_t *screen, const data_t *show_details)
 {
     data_t *d;
 
@@ -289,18 +311,33 @@ static void screen_update(screen_t *screen)
     }
 
     /* Update display */
-    wnoutrefresh(screen->master);
-    wnoutrefresh(screen->content);
+    if (show_details)
+    {
+        update_details(screen, show_details);
+        show_panel(screen->details_panel);
+    }
+    else
+      hide_panel(screen->details_panel);
+       
+    update_panels(); 
     doupdate();
 }
 
 
+/* Capture user input (keys) and timeout to periodically referesh */
 static void process(screen_t *screen)
 {
-    int c;
+    int c, do_update;
+    const data_t *show_details;
+    
+    /* Force initial drawing */    
+    data_update(screen->datas);
+    screen_update(screen, NULL);
 
     while ((c = getch()) != 'Q' && c != 'q')
     {
+        do_update = (c == -1) ? 0 : 1;
+        show_details = NULL;
         switch (c)
         {
             case KEY_UP:
@@ -309,13 +346,18 @@ static void process(screen_t *screen)
             case KEY_DOWN:
                 menu_driver(screen->menu, REQ_DOWN_ITEM);
                 break;
-            case KEY_ENTER:
+            case KEY_LEFT:
+                show_details = item_userptr(current_item(screen->menu));
                 break;
             default:
                 break;
         }
-        data_update(screen->datas);
-        screen_update(screen);
+
+        if (do_update)
+        {
+            data_update(screen->datas);
+            screen_update(screen, show_details);
+        }
     }
 }
 
