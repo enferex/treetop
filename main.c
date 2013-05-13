@@ -88,16 +88,24 @@ static void screen_create_menu(screen_t *screen)
 {
     int i;
     data_t *d;
+    char line[COLS];
+    const char *def = "Updating...";
 
     /* Count number of data items */
     for (d=screen->datas; d; d=d->next)
       ++i;
+    
+    /* Allocate a long line for the description (make it all spaces) */ 
+    memset(line, ' ', sizeof(line) - 1);
+    line[sizeof(line)] = '\0';
+    memcpy(line, def, strlen(def));
 
     /* Allocate and create menu items (one per data item */
     screen->items = (ITEM **)calloc(i+1, sizeof(ITEM *));
     for (i=0, d=screen->datas; d; d=d->next, ++i)
     {
-        screen->items[i] = new_item(d->base_name, "Updating...");
+        screen->items[i] = new_item(d->base_name, line);
+        screen->items[i]->description.length = sizeof(line);
         set_item_userptr(screen->items[i], (void *)d);
         d->item = screen->items[i];
     }
@@ -137,7 +145,7 @@ static screen_t *screen_create(data_t *datas)
 
     screen->master = newwin(LINES, COLS, 0, 0);
     screen->content = newwin(LINES-4, COLS-4, 2, 2);
-    screen->details = newwin(LINES-6, COLS-6, 2, 2);
+    screen->details = newwin(LINES-8, COLS-8, 2, 2);
 
     /* Decorate the master window */
     box(screen->master, 0, 0);
@@ -345,13 +353,8 @@ static void screen_update(screen_t *screen, const data_t *show_details)
 
     /* Check for updated data */
     for (d=screen->datas; d; d=d->next)
-    {
-        if (d->state == UPDATED)
-        {
-            d->item->description.str = d->line;
-            d->item->description.length = strlen(d->line);
-        }
-    }
+      if (d->state == UPDATED)
+        d->item->description.str = d->line;
 
     /* Refresh menu */
     unpost_menu(screen->menu);
