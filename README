@@ -1,0 +1,45 @@
+treetop
+-------
+TreeTop is a 'top' like log file monitor.  When a file changes the last line of
+text in that file is displayed.  Selecting the file in the tool will display the
+last bits of the file providing potentially more information than just the last
+line.
+
+
+Usage
+-----
+TreeTop requires a list of files to monitor.  This list is contained in a
+textfile where each filename (preferably fullpath) is delimited by a newline.
+This config file will ignore any data following a '#' comment character.  For
+example here is a sample 'config' file:
+        # Sample config file: myconfig.config
+        /var/log/httpd.log
+        /var/log/messages
+
+To run treetop, execute the binary with the config file as the argument, for
+example:
+        ./treetop myconfig.config
+
+
+Dependencies
+------------
+libncurses
+libc
+
+
+Building
+--------
+Simply run `make' which will produce (hopefully) the `treetop' binary.
+
+
+Installation
+------------
+This program is in alpha.  The file can be copied anywhere, spread the magic.
+
+
+Contact
+-------
+Matt Davis (enferex)
+mattdavis9@gmail.com
+
+                    "Monkeys like trees, climb to the top."

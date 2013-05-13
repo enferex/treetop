@@ -1,3 +1,26 @@
+/******************************************************************************
+ * main.c
+ *
+ * treetop - A 'top' like text/log file monitor.
+ *
+ * Copyright (C) 2013, Matt Davis (enferex)
+ *
+ * This file is part of treetop.
+ * treetop is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * treetop is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with treetop.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -134,15 +157,18 @@ static screen_t *screen_create(data_t *datas)
     int x;
     const char *title = "}-= TreeTop =-{";
     screen_t *screen;
+
     initscr();
     cbreak();
     noecho();
+    curs_set(0); /* Turn cursor off */
     keypad(stdscr, TRUE);
     timeout(DELAY_MS);
 
     screen = calloc(1, sizeof(screen_t));
     screen->datas = datas;
 
+    /* Create the windows */
     screen->master = newwin(LINES, COLS, 0, 0);
     screen->content = newwin(LINES-4, COLS-4, 2, 2);
     screen->details = newwin(LINES-8, COLS-8, 2, 2);
@@ -152,6 +178,7 @@ static screen_t *screen_create(data_t *datas)
     x = find_center_start(screen->master, strlen(title));
     mvwprintw(screen->master, 0, x, title);
 
+    /* Put the windows in panels (easier to refresh things) */
     screen->master_panel = new_panel(screen->master);
     screen->details_panel = new_panel(screen->details);
     screen->content_panel = new_panel(screen->content);
