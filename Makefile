@@ -1,4 +1,4 @@
-APP = logtop
+APP = treetop
 CFLAGS = -g3 -Wall
 LIBS = -lcurses -lmenu -lpanel
 

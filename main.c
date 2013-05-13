@@ -109,9 +109,22 @@ static void screen_create_menu(screen_t *screen)
 }
 
 
+/* Returns the starting x-coordinate such that when displaying a value of
+ * 'length' characters long, it will be centered in the given window.
+ */
+static int find_center_start(const WINDOW *win, size_t length)
+{
+    int max_x = getmaxx(win);
+    int half = length / 2;
+    return max_x / 2 - half;
+}
+
+
 /* Initialize curses */
 static screen_t *screen_create(data_t *datas)
 {
+    int x;
+    const char *title = "}-= TreeTop =-{";
     screen_t *screen;
     initscr();
     cbreak();
@@ -128,7 +141,8 @@ static screen_t *screen_create(data_t *datas)
 
     /* Decorate the master window */
     box(screen->master, 0, 0);
-    mvwprintw(screen->master, 0, COLS/2 - 6, "}-= PTOP =-{");
+    x = find_center_start(screen->master, strlen(title));
+    mvwprintw(screen->master, 0, x, title);
 
     screen->master_panel = new_panel(screen->master);
     screen->details_panel = new_panel(screen->details);
@@ -186,7 +200,7 @@ static data_t *data_init(const char *fname)
         if (!(entry_fp = fopen(c, "r")))
         {
             WR("Could not open file: '%s'", c);
-            CONTINUE;;
+            CONTINUE;
         }
 
         /* Add to list */ 
