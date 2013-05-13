@@ -315,7 +315,7 @@ static void update_details(screen_t *screen, const data_t *selected)
     for (y=0; y<maxy; ++y)
     {
         disp[d_idx++] = ' ';
-        for (x=0; x<maxx-2; ++x)
+        for (x=0; x<maxx-1; ++x)
         {
             if (buf[b_idx]=='\n' || buf[b_idx] == '\r')
             {
