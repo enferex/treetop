@@ -57,8 +57,8 @@
 #define UPDATED_CHAR "*"
 
 
-/* Delay milliseconds */
-#define DELAY_MS 5000
+/* Default delay (seconds) */
+#define DEFAULT_TIMEOUT_SECS 5
 
 
 /* Max */
@@ -103,9 +103,13 @@ typedef struct _screen_t
 } screen_t;
 
 
-static void usage(const char *execname)
+static void usage(const char *execname, const char *msg)
 {
-    PR("Usage: %s <config>\n", execname);
+    if (msg)
+      PR("%s", msg);
+    printf("Usage: %s <config> [-d secs] [-h]\n"
+       "    -h:      Display this help screen\n"
+       "    -d secs: Auto-update display every 'secs' seconds\n", execname);
     exit(0);
 }
 
@@ -156,7 +160,7 @@ static int find_center_start(const WINDOW *win, size_t length)
 
 
 /* Initialize curses */
-static screen_t *screen_create(data_t *datas)
+static screen_t *screen_create(data_t *datas, int timeout_ms)
 {
     int x;
     const char *title = "}-= TreeTop =-{";
@@ -167,7 +171,7 @@ static screen_t *screen_create(data_t *datas)
     noecho();
     curs_set(0); /* Turn cursor off */
     keypad(stdscr, TRUE);
-    timeout(DELAY_MS);
+    timeout(timeout_ms);
 
     screen = calloc(1, sizeof(screen_t));
     screen->datas = datas;
@@ -455,21 +459,45 @@ static void process(screen_t *screen)
 
 int main(int argc, char **argv)
 {
+    int i, timeout_secs;
     screen_t *screen;
     data_t *datas;
     const char *fname;
 
     /* Args */
-    if (argc != 2)
-      usage(argv[0]);
-    fname = argv[1];
-    DBG("Using config: %s\n", fname);
+    fname = 0;
+    timeout_secs = DEFAULT_TIMEOUT_SECS;
+    for (i=1; i<argc; ++i)
+    {
+        if (strncmp(argv[i], "-d", strlen("-d")) == 0)
+        {
+            if (i+1 < argc)
+              timeout_secs = atoi(argv[++i]);
+            else
+              usage(argv[0], "Incorrect timeout value specified");
+        }
+        else if (strncmp(argv[i], "-h", strlen("-h")) == 0)
+          usage(argv[0], NULL);
+        else if (argv[i][0] != '-')
+          fname = argv[i];
+        else
+          usage(argv[0], "Invalid argument specified");
+    }
+
+    /* Sanity check args */
+    if (!fname)
+      usage(argv[0], "Please provide a configuration file");
+    if (timeout_secs < 0)
+      usage(argv[0], "Incorrect timeout value specified");
+
+    DBG("Using config:  %s", fname);
+    DBG("Using timeout: %d seconds", timeout_secs);
 
     /* Load data */
     datas = data_init(fname);
 
     /* Initialize display */
-    screen = screen_create(datas);
+    screen = screen_create(datas, timeout_secs * 1000);
 
     /* Do the work */
     process(screen);
