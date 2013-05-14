@@ -374,8 +374,8 @@ static void update_details(screen_t *screen, const data_t *selected)
     mvwprintw(screen->details, 2, 0, disp);
     
     /* Display file name and draw border */
-    mvwprintw(screen->details, 1, 1, "%s:\n", selected->base_name);
     box(screen->details, 0, 0);
+    mvwprintw(screen->details, 0, 1, "[%s]", selected->base_name);
 }
 
 
