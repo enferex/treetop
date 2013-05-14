@@ -37,12 +37,16 @@
 #define _PR(_tag, _outfd, ...)                       \
     do {                                             \
         fprintf(_outfd, "[logtop]"_tag __VA_ARGS__); \
-         fputc('\n', _outfd);                        \
+        fputc('\n', _outfd);                         \
     } while(0)
 #define PR(...)  _PR(" ", stdout, __VA_ARGS__)
 #define DBG(...) _PR("[debug] ", stdout, __VA_ARGS__)
 #define WR(...)  _PR("[warning] ", stderr, __VA_ARGS__)
-#define ER(...)  _PR("[error] ", stderr, __VA_ARGS__)
+#define ER(...)                               \
+    do {                                      \
+        _PR("[error] ", stderr, __VA_ARGS__); \
+        exit(-1);                             \
+    } while (0)
 
 
 /* Comment character for config file (anything after this char is ignored) */
