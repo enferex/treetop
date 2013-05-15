@@ -58,7 +58,7 @@
 
 
 /* Default delay (seconds) */
-#define DEFAULT_TIMEOUT_SECS 5
+#define DEFAULT_TIMEOUT_SECS 10
 
 
 /* Max */
@@ -170,8 +170,8 @@ static screen_t *screen_create(data_t *datas, int timeout_ms)
     cbreak();
     noecho();
     curs_set(0); /* Turn cursor off */
-    keypad(stdscr, TRUE);
     timeout(timeout_ms);
+    keypad(stdscr, TRUE);
 
     screen = calloc(1, sizeof(screen_t));
     screen->datas = datas;
@@ -422,7 +422,7 @@ static void screen_update(screen_t *screen, const data_t *show_details)
 /* Capture user input (keys) and timeout to periodically referesh */
 static void process(screen_t *screen)
 {
-    int c, do_update;
+    int c;
     const data_t *show_details;
     
     /* Force initial drawing */    
@@ -431,7 +431,6 @@ static void process(screen_t *screen)
 
     while ((c = getch()) != 'Q' && c != 'q')
     {
-        do_update = (c == -1) ? 0 : 1;
         show_details = NULL;
         switch (c)
         {
@@ -448,11 +447,8 @@ static void process(screen_t *screen)
                 break;
         }
 
-        if (do_update)
-        {
-            data_update(screen->datas);
-            screen_update(screen, show_details);
-        }
+        data_update(screen->datas);
+        screen_update(screen, show_details);
     }
 }
 
