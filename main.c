@@ -440,7 +440,8 @@ static void process(screen_t *screen)
             case KEY_DOWN:
                 menu_driver(screen->menu, REQ_DOWN_ITEM);
                 break;
-            case KEY_LEFT:
+            case KEY_ENTER:
+            case '\n':
                 show_details = item_userptr(current_item(screen->menu));
                 break;
             default:
