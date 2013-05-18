@@ -334,44 +334,38 @@ static void data_update(data_t *datas)
 /* Update the details screen to display info about the selected item */
 static void update_details(screen_t *screen, const data_t *selected)
 {
-    int maxx, maxy, x, y, d_idx, b_idx;
-    char buf[1024]={0}, disp[1024]={0};
+    int c, maxx, maxy, bytes, n_used;
 
+    /* Clear and get the size of the details window */
     wclear(screen->details);
-
-    /* Read in buffer */
-    if (fseek(selected->fp, -sizeof(buf), SEEK_END) == -1)
-      fseek(selected->fp, 0, SEEK_SET);
-    fread(buf, sizeof(buf), 1, selected->fp);
-    buf[sizeof(buf)-1] = '\0';
-    
-    /* Draw last n bytes of file: (figure out how much room we have) */
     getmaxyx(screen->details, maxy, maxx);
-    maxy -= 2; /* Padding between file data and filename */
-    --maxx;
 
-    while ((maxx * maxy) > sizeof(buf))
-      --maxy;
+    /* Draw last n bytes of file: (figure out how much room we have)   */
+    maxy -= 2; /* Ignore border */
+    maxx -= 2; /* Ignore border */
+    bytes = maxx * maxy;
 
-    /* Wrap */
-    b_idx = d_idx = 0;
-    for (y=0; y<maxy; ++y)
+    /* Set the file-read pointer */
+    if (fseek(selected->fp, -bytes, SEEK_END) == -1)
+      fseek(selected->fp, 0, SEEK_SET);
+
+    /* Read in file contents */
+    n_used = 0;
+    wmove(screen->details, 1, 1);
+    while ((c = fgetc(selected->fp)) != EOF)
     {
-        disp[d_idx++] = ' ';
-        for (x=0; x<maxx-1; ++x)
+        int x = getcurx(screen->details);
+        if (x == maxx)
         {
-            if (buf[b_idx]=='\n' || buf[b_idx] == '\r')
-            {
-                ++b_idx;
-                break;
-            }
-            disp[d_idx++] = buf[b_idx++];
+            waddch(screen->details, ' ');
+            waddch(screen->details, ' ');
+            waddch(screen->details, ' ');
         }
-        disp[d_idx++] = '\n';
+        if (n_used > bytes)
+          break;
+        waddch(screen->details, c);
+        ++n_used;
     }
-
-    disp[d_idx] = '\0';
-    mvwprintw(screen->details, 2, 0, disp);
     
     /* Display file name and draw border */
     box(screen->details, 0, 0);
