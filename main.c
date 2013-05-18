@@ -179,7 +179,7 @@ static screen_t *screen_create(data_t *datas, int timeout_ms)
     /* Create the windows */
     screen->master = newwin(LINES, COLS, 0, 0);
     screen->content = newwin(LINES-4, COLS-4, 2, 2);
-    screen->details = newwin(LINES-8, COLS-4, 2, 2);
+    screen->details = newwin(LINES-2, COLS-4, 1, 2);
 
     /* Decorate the master window */
     box(screen->master, 0, 0);
