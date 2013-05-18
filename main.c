@@ -180,6 +180,7 @@ static screen_t *screen_create(data_t *datas, int timeout_ms)
     screen->master = newwin(LINES, COLS, 0, 0);
     screen->content = newwin(LINES-3, COLS-2, 2, 1);
     screen->details = newwin(LINES-3, COLS-2, 2, 1);
+    scrollok(screen->details, TRUE);
 
     /* Decorate the master window */
     box(screen->master, 0, 0);
@@ -334,7 +335,7 @@ static void data_update(data_t *datas)
 /* Update the details screen to display info about the selected item */
 static void update_details(screen_t *screen, const data_t *selected)
 {
-    int c, maxx, maxy, bytes, n_used;
+    int c, maxx, maxy, bytes;
 
     /* Clear and get the size of the details window */
     wclear(screen->details);
@@ -350,21 +351,16 @@ static void update_details(screen_t *screen, const data_t *selected)
       fseek(selected->fp, 0, SEEK_SET);
 
     /* Read in file contents */
-    n_used = 0;
     wmove(screen->details, 1, 1);
     while ((c = fgetc(selected->fp)) != EOF)
     {
-        int x = getcurx(screen->details);
-        if (x == maxx)
+        if (getcurx(screen->details) == maxx)
         {
             waddch(screen->details, ' ');
             waddch(screen->details, ' ');
             waddch(screen->details, ' ');
         }
-        if (n_used > bytes)
-          break;
         waddch(screen->details, c);
-        ++n_used;
     }
     
     /* Display file name and draw border */
