@@ -8,5 +8,8 @@ $(APP): main.c
 test: $(APP)
 	./$(APP) test.config
 
+debug: $(APP)
+	exec gdb --args ./$(APP) test.config
+
 clean:
 	rm -fv $(APP)
