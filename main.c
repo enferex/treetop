@@ -419,20 +419,27 @@ static void process(screen_t *screen)
     data_update(screen->datas);
     screen_update(screen, NULL);
 
+    show_details = NULL;
     while ((c = getch()) != 'Q' && c != 'q')
     {
-        show_details = NULL;
         switch (c)
         {
             case KEY_UP:
+            case 'k':
                 menu_driver(screen->menu, REQ_UP_ITEM);
                 break;
             case KEY_DOWN:
+            case 'j':
                 menu_driver(screen->menu, REQ_DOWN_ITEM);
                 break;
             case KEY_ENTER:
             case '\n':
+            case 'l':
                 show_details = item_userptr(current_item(screen->menu));
+                break;
+            case 0x1B:
+            case 'h':
+                show_details = NULL;
                 break;
             default:
                 break;
