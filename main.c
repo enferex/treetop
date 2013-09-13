@@ -31,6 +31,7 @@
 #include <menu.h>
 #include <panel.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 
 /* Output routines */
@@ -286,6 +287,12 @@ static void get_last_line(data_t *d)
     ssize_t idx, n_bytes;
     char line[1024] = {0};
 
+    /* First we need to re-open the file as the file descriptor might not be
+     * up-to-date */
+    if (!(d->fp = fopen(d->full_path, "r")))
+      ER("Could not open config file '%s'", d->full_path);
+    d->fd = fileno(d->fp);
+
     /* Read in last 1024 bytes */
     if (fseek(d->fp, -sizeof(line), SEEK_END) == -1)
       fseek(d->fp, 0, SEEK_SET);
@@ -313,19 +320,19 @@ static void get_last_line(data_t *d)
 static void data_update(data_t *datas)
 {
     data_t *d;
-    struct stat stat;
+    struct stat stats;
 
     /* If the files have been updated, grab the last line from the file */
     for (d=datas; d; d=d->next)
     {
-        if (fstat(d->fd, &stat) == -1)
+        if (stat(d->full_path, &stats) == -1)
           ER("Could not obtain file stats for: '%s'", d->base_name);
 
         /* If the file has been modified since last check, update */
-        if (stat.st_mtime != d->last_mod)
+        if (stats.st_mtime != d->last_mod)
         {
             get_last_line(d);
-            d->last_mod = stat.st_mtime;
+            d->last_mod = stats.st_mtime;
             d->state = UPDATED;
         }
     }
