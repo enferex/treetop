@@ -1,9 +1,10 @@
 APP = treetop
+SRC = main.c
 CFLAGS = -g3 -Wall
 LIBS = -lcurses -lmenu -lpanel
 
-$(APP): main.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o $(APP)
+$(APP): $(SRC)
+	$(CC) $(SRC) $(CFLAGS) $(LIBS) -o $(APP)
 
 test: $(APP)
 	./$(APP) test.config
