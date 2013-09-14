@@ -419,10 +419,13 @@ static void process(screen_t *screen)
 {
     int c;
     const data_t *show_details;
-    
-    /* Force initial drawing */    
+
+    /* Force initial drawing */
     data_update(screen->datas);
     screen_update(screen, NULL);
+    show_details = NULL;
+
+    /* Initialize the var (might cause bus error in screen update) */
     show_details = NULL;
 
     while ((c = getch()) != 'Q' && c != 'q')
@@ -452,6 +455,8 @@ static void process(screen_t *screen)
             case 'h':
                 show_details = NULL;
 
+            /* no key striken (timeout), don't modify the screen state */
+            case ERR:
             default:
                 break;
         }
