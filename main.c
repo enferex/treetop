@@ -419,10 +419,10 @@ static void process(screen_t *screen)
     /* Force initial drawing */    
     data_update(screen->datas);
     screen_update(screen, NULL);
+    show_details = NULL;
 
     while ((c = getch()) != 'Q' && c != 'q')
     {
-        show_details = NULL;
         switch (c)
         {
             case KEY_UP:
@@ -440,6 +440,13 @@ static void process(screen_t *screen)
             case 'l':
                 show_details = item_userptr(current_item(screen->menu));
                 break;
+
+            case 0x1B: /* KEY_ESC */
+            case ' ':
+            case 'x':
+            case 'X':
+            case 'h':
+                show_details = NULL;
 
             default:
                 break;
