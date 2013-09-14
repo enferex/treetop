@@ -355,12 +355,16 @@ static void update_details(screen_t *screen, const data_t *selected)
     wmove(screen->details, 1, 1);
     while ((c = fgetc(selected->fp)) != EOF)
     {
+        /* Add whitespace if the cursor is on a border */
         if (getcurx(screen->details) == maxx)
         {
             waddch(screen->details, ' ');
             waddch(screen->details, ' ');
             waddch(screen->details, ' ');
         }
+        else if (getcurx(screen->details) == 0)
+          waddch(screen->details, ' ');
+
         waddch(screen->details, c);
     }
     
