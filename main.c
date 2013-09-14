@@ -287,12 +287,6 @@ static void get_last_line(data_t *d)
     ssize_t idx, n_bytes;
     char line[1024] = {0};
 
-    /* First we need to re-open the file as the file descriptor might not be
-     * up-to-date */
-    if (!(d->fp = fopen(d->full_path, "r")))
-      ER("Could not open config file '%s'", d->full_path);
-    d->fd = fileno(d->fp);
-
     /* Read in last 1024 bytes */
     if (fseek(d->fp, -sizeof(line), SEEK_END) == -1)
       fseek(d->fp, 0, SEEK_SET);
