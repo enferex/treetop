@@ -118,7 +118,7 @@ static void usage(const char *execname, const char *msg)
 /* Update display */
 static void screen_create_menu(screen_t *screen)
 {
-    int i;
+    int i = 0;
     data_t *d;
     char line[COLS];
     const char *def = "Updating...";
