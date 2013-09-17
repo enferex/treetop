@@ -445,19 +445,15 @@ static void process(screen_t *screen)
                 show_details = item_userptr(current_item(screen->menu));
                 break;
 
-            case 0x1B: /* KEY_ESC */
-            case ' ':
-            case 'x':
-            case 'X':
-            case 'h':
-                show_details = NULL;
-
             /*  If no key was registered, or on some wacky
              * input we don't care about don't modify the screen state.
              */
             case ERR:
-            default:
                 break;
+
+            /* Someother key was pressed, exit details window */
+            default:
+                show_details = NULL;
         }
 
         data_update(screen->datas);
