@@ -425,9 +425,6 @@ static void process(screen_t *screen)
     screen_update(screen, NULL);
     show_details = NULL;
 
-    /* Initialize the var (might cause bus error in screen update) */
-    show_details = NULL;
-
     while ((c = getch()) != 'Q' && c != 'q')
     {
         switch (c)
@@ -455,7 +452,9 @@ static void process(screen_t *screen)
             case 'h':
                 show_details = NULL;
 
-            /* no key striken (timeout), don't modify the screen state */
+            /*  If no key was registered, or on some wacky
+             * input we don't care about don't modify the screen state.
+             */
             case ERR:
             default:
                 break;
