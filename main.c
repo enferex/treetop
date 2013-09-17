@@ -425,6 +425,7 @@ static void screen_update(screen_t *screen, const data_t *show_details)
 static void process(screen_t *screen)
 {
     int c;
+    char *blank_line;
     const data_t *show_details;
 
     /* Force initial drawing */
@@ -436,6 +437,23 @@ static void process(screen_t *screen)
     {
         switch (c)
         {
+            case KEY_RESIZE:
+                if (wresize(screen->master, LINES, COLS) == ERR)
+                    WR("Error resizing master windows");
+                if (wresize(screen->content, INNER_WINDOW_LINES, INNER_WINDOW_COLS) == ERR)
+                    WR("Error resizing content windows");
+                if (wresize(screen->details, INNER_WINDOW_LINES, INNER_WINDOW_COLS) == ERR)
+                    WR("Error resizing details windows");
+                /* Fix to remove a trailing | from previous box drawing */
+                blank_line = malloc(sizeof(char) * COLS-2);
+                memset(blank_line, ' ', sizeof(char) * COLS-2);
+                mvwprintw(screen->master, 1, 1, blank_line);
+                free(blank_line);
+                wnoutrefresh(screen->master);
+                wnoutrefresh(screen->content);
+                wnoutrefresh(screen->details);
+                write_title_window(screen->master);
+                break;
             case KEY_UP:
             case 'k':
                 menu_driver(screen->menu, REQ_UP_ITEM);
