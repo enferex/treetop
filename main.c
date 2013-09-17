@@ -65,6 +65,10 @@
 /* Max */
 #define MAX(_a, _b) (((_a)>(_b)) ? (_a) : (_b))
 
+#define INNER_WINDOW_LINES (LINES-3)
+#define INNER_WINDOW_COLS (COLS-2)
+
+#define TITLE "}-= TreeTop =-{"
 
 /* File state */
 typedef enum _state_e
@@ -159,12 +163,18 @@ static int find_center_start(const WINDOW *win, size_t length)
     return max_x / 2 - half;
 }
 
+/* Writes the program title into the window */
+static void write_title_window(WINDOW *master) {
+    int x;
+    box(master, 0, 0);
+    x = find_center_start(master, strlen(TITLE));
+    mvwprintw(master, 0, x, TITLE);
+}
+
 
 /* Initialize curses */
 static screen_t *screen_create(data_t *datas, int timeout_ms)
 {
-    int x;
-    const char *title = "}-= TreeTop =-{";
     screen_t *screen;
 
     initscr();
@@ -179,14 +189,12 @@ static screen_t *screen_create(data_t *datas, int timeout_ms)
 
     /* Create the windows */
     screen->master = newwin(LINES, COLS, 0, 0);
-    screen->content = newwin(LINES-3, COLS-2, 2, 1);
-    screen->details = newwin(LINES-3, COLS-2, 2, 1);
+    screen->content = newwin(INNER_WINDOW_LINES, INNER_WINDOW_COLS, 2, 1);
+    screen->details = newwin(INNER_WINDOW_LINES, INNER_WINDOW_COLS, 2, 1);
     scrollok(screen->details, TRUE);
 
     /* Decorate the master window */
-    box(screen->master, 0, 0);
-    x = find_center_start(screen->master, strlen(title));
-    mvwprintw(screen->master, 0, x, title);
+    write_title_window(screen->master);
 
     /* Put the windows in panels (easier to refresh things) */
     screen->master_panel = new_panel(screen->master);
@@ -408,11 +416,10 @@ static void screen_update(screen_t *screen, const data_t *show_details)
     }
     else
       hide_panel(screen->details_panel);
-       
-    update_panels(); 
+
+    update_panels();
     doupdate();
 }
-
 
 /* Capture user input (keys) and timeout to periodically referesh */
 static void process(screen_t *screen)
