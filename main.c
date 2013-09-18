@@ -455,8 +455,7 @@ static void process(screen_t *screen)
                 write_title_window(screen->master);
 
                 /* Remove old border "|" drawings */
-                mvwprintw(screen->master, 1, COLS-2, " ");
-                doupdate();
+                mvwprintw(screen->master, 1, COLS-4, "   ");
                 break;
 
             case KEY_UP:
