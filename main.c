@@ -80,6 +80,8 @@ typedef enum _state_e
     UPDATED
 } state_e;
 
+/* Stores the last X window columns number */
+static int columns = 0;
 
 /* File information */
 typedef struct _data_t
@@ -442,6 +444,8 @@ static void process(screen_t *screen)
         switch (c)
         {
             case KEY_RESIZE:
+                mvwprintw(screen->master, 1, columns-1, " ");
+                columns = COLS;
                 if (wresize(screen->master, LINES, COLS) == ERR)
                     WR("Error resizing master windows");
                 if (wresize(screen->content,
@@ -453,10 +457,6 @@ static void process(screen_t *screen)
 
                 /* Redraw the title and clean up the border */
                 write_title_window(screen->master);
-
-                /* Remove old border "|" drawings */
-                mvwprintw(screen->master, 1, COLS-2, " ");
-                doupdate();
                 break;
 
             case KEY_UP:
@@ -533,6 +533,9 @@ int main(int argc, char **argv)
 
     /* Initialize display */
     screen = screen_create(datas, timeout_secs * 1000);
+
+    /* Initialize columns variable */
+    columns = COLS;
 
     /* Do the work */
     process(screen);
