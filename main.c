@@ -73,6 +73,7 @@
 
 #define TITLE "}-= TreeTop =-{"
 
+
 /* File state */
 typedef enum _state_e
 {
@@ -431,6 +432,11 @@ static void process(screen_t *screen)
 {
     int c;
     const data_t *show_details;
+    static int prev_columns = -1;
+
+    /* Initalize */
+    if (prev_columns == -1)
+      prev_columns = COLS;
 
     /* Force initial drawing */
     data_update(screen->datas);
@@ -442,6 +448,8 @@ static void process(screen_t *screen)
         switch (c)
         {
             case KEY_RESIZE:
+                mvwprintw(screen->master, 1, prev_columns-1, " ");
+                prev_columns = COLS;
                 if (wresize(screen->master, LINES, COLS) == ERR)
                     WR("Error resizing master windows");
                 if (wresize(screen->content,
@@ -453,9 +461,6 @@ static void process(screen_t *screen)
 
                 /* Redraw the title and clean up the border */
                 write_title_window(screen->master);
-
-                /* Remove old border "|" drawings */
-                mvwprintw(screen->master, 1, COLS-4, "   ");
                 break;
 
             case KEY_UP:
@@ -474,13 +479,13 @@ static void process(screen_t *screen)
                 show_details = item_userptr(current_item(screen->menu));
                 break;
 
-            /*  If no key was registered, or on some wacky
+            /* If no key was registered, or on some wacky
              * input we don't care about don't modify the screen state.
              */
             case ERR:
                 break;
 
-            /* Someother key was pressed, exit details window */
+            /* Some other key was pressed, exit details window */
             default:
                 show_details = NULL;
         }
